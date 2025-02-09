@@ -69,11 +69,14 @@ inline struct FrameInfo** create_frames_storage(int numOfFrames)
 	//panic("create_frames_storage is not implemented yet");
 	//Your Code is Here...
 	int size_elframe_alloc = numOfFrames*(sizeof(struct FrameInfo*));
-	struct FrameInfo** ptr_elframes =(struct FrameInfo** )kmalloc(size_elframe_alloc);
-	if(ptr_elframes==NULL){return NULL;}
-//	    memset(ptr_elframes, 0, size_elframe_alloc);
-	for(int i =0 ; i<numOfFrames;i++){
-	 	ptr_elframes[i]=0;
+	struct FrameInfo** ptr_elframes =(struct FrameInfo**)kmalloc(size_elframe_alloc);
+	if(ptr_elframes==NULL)
+	{
+		return NULL;
+	}
+	for(int i =0 ; i < numOfFrames;i++)
+	{
+	 	ptr_elframes[i] = 0;
 	}
 	return ptr_elframes;
 
@@ -95,7 +98,6 @@ struct Share* get_share(int32 ownerID, char* name)
 	 if (name == NULL) {
 	     return NULL;
 	 }
-
 	 acquire_spinlock(&AllShares.shareslock);
 
 	 struct Share *share_rn = LIST_FIRST(&AllShares.shares_list);
@@ -127,10 +129,11 @@ struct Share* create_share(int32 ownerID, char* shareName, uint32 size, uint8 is
 	//panic("create_share is not implemented yet");
 	//Your Code is Here...
     struct Share* obj_gded_shared = (struct Share*)kmalloc(sizeof(struct Share));
-    if (obj_gded_shared == NULL) {
+
+    if (obj_gded_shared == NULL)
+    {
         return NULL;
     }
-
 
     obj_gded_shared->ownerID = ownerID;
     strncpy(obj_gded_shared->name, shareName, 64);
@@ -140,8 +143,12 @@ struct Share* create_share(int32 ownerID, char* shareName, uint32 size, uint8 is
     obj_gded_shared->ID = ((int32)obj_gded_shared) & 0x7FFFFFFF;
     int frameCount = ROUNDUP(size, PAGE_SIZE);
     frameCount = frameCount/PAGE_SIZE;
-     struct FrameInfo** create_frames=create_frames_storage(frameCount);
-    if(create_frames==NULL)return NULL;
+
+    struct FrameInfo** create_frames = create_frames_storage(frameCount);
+
+    if(create_frames == NULL)	return NULL;
+    // did not undo the allocations
+
     obj_gded_shared->framesStorage = create_frames;
     return obj_gded_shared;
 
@@ -159,55 +166,59 @@ int createSharedObject(int32 ownerID, char* shareName, uint32 size, uint8 isWrit
 	//Your Code is Here...
     //cprintf("CREATEEEEEEEEEEEEE SHAREDDDDDDDDDDDD \n");
 	struct Env* myenv = get_cpu_proc(); //The calling environment
+	//cprintf("create_shared_obj 1\n");
 	struct Share* existing_share = get_share(ownerID, shareName);
-			    if (existing_share != NULL)
-			    {
-			        return E_SHARED_MEM_EXISTS;
-			    }
 
+	if (existing_share != NULL)
+	{
+	    return E_SHARED_MEM_EXISTS;
+	}
+	//cprintf("2\n");
+	struct Share* new_share = create_share(ownerID, shareName, size, isWritable);
 
-		    struct Share* new_share = create_share(ownerID, shareName, size, isWritable);
-		    if (new_share == NULL)
-		    {
-		        return E_NO_SHARE;
-		    }
+	if (new_share == NULL)
+	{
+	   return E_NO_SHARE;
+	}
+	//cprintf("3\n");
+	acquire_spinlock(&AllShares.shareslock);
+	LIST_INSERT_HEAD(&AllShares.shares_list,new_share);
+	release_spinlock(&AllShares.shareslock);
 
-			acquire_spinlock(&AllShares.shareslock);
-			LIST_INSERT_HEAD(&AllShares.shares_list,new_share);
-			release_spinlock(&AllShares.shareslock);
+	//cprintf("4\n");
+	uint32 total_pages = ROUNDUP(size, PAGE_SIZE) / PAGE_SIZE;
+	uint32 va = (uint32)virtual_address;
 
-		    uint32 total_pages = ROUNDUP(size, PAGE_SIZE) / PAGE_SIZE;
-		    uint32 va = (uint32)virtual_address;
-		    void* mapStart=kmalloc(ROUNDUP(size, PAGE_SIZE));
-		    if (mapStart == NULL)
-				{
-					return E_NO_SHARE;
-				}
-		    for (uint32 i = 0; i < total_pages; i++)
-		    {
-		    	uint32 *ptr_Page = NULL;
-		    	get_page_table(ptr_page_directory,(uint32)mapStart,&ptr_Page);
-		      struct FrameInfo* frame_info = get_frame_info(ptr_page_directory,(uint32)mapStart,&ptr_Page);
+	void* mapStart = kmalloc(ROUNDUP(size, PAGE_SIZE));
+	//cprintf("5\n");
+	if (mapStart == NULL)
+	{
+		//cprintf("returning null\n");
+		return E_NO_SHARE;
+	}
 
-		        int perm = PERM_USER | PERM_WRITEABLE;
+	for (uint32 i = 0; i < total_pages; i++)
+	{
+		uint32 *ptr_Page = NULL;
+	   	get_page_table(ptr_page_directory,(uint32)mapStart,&ptr_Page);
+	    struct FrameInfo* frame_info = get_frame_info(ptr_page_directory,(uint32)mapStart,&ptr_Page);
+	    int perm = PERM_USER | PERM_WRITEABLE;
+	    int  result = map_frame(myenv->env_page_directory, frame_info, va + (i * PAGE_SIZE),perm);
 
-		      int  result = map_frame(myenv->env_page_directory, frame_info, va + (i * PAGE_SIZE),perm);
+		new_share->framesStorage[i] = frame_info;
+		if (result != 0)
+		{
+		   for (uint32 j = 0; j <= i; j++)
+		   {
+			   uint32 cleanup_va = va + (j * PAGE_SIZE);
+			   unmap_frame(myenv->env_page_directory, cleanup_va);
+		   }
 
-		        new_share->framesStorage[i] = frame_info;
-		        if (result != 0)
-		        {
-		            for (uint32 j = 0; j <= i; j++)
-		            {
-		                uint32 cleanup_va = va + (j * PAGE_SIZE);
-		                unmap_frame(myenv->env_page_directory, cleanup_va);
-		            }
-
-		            return E_NO_SHARE;
-		        }
-		    }
-
-
-		    return new_share->ID;
+		   return E_NO_SHARE;
+		}
+	}
+	//cprintf("DONE create_shared_obj\n");
+	return new_share->ID;
 
 }
 
@@ -247,8 +258,6 @@ int getSharedObject(int32 ownerID, char* shareName, void* virtual_address)
 	        va + (i * PAGE_SIZE),
 	        shared_obj->isWritable? PERM_USER | PERM_WRITEABLE:  PERM_USER
 	    );
-
-
 	}
 
 	shared_obj->references++;

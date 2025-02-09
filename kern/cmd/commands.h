@@ -31,6 +31,9 @@ struct Command
 extern struct Command commands[] ;
 extern uint32 NUM_OF_COMMANDS ;
 
+//[PROJECT'24.MS3 - #07] [3] PRIORITY RR Scheduler - initialize command
+int command_schedPRIRR(int number_of_arguments, char **arguments);
+
 //=================================================================//
 // Declaration of functions that implement command prompt commands.//
 //=================================================================//
@@ -95,5 +98,9 @@ int command_sch_test(int number_of_arguments, char **arguments);
 
 //2023
 int command_tst(int number_of_arguments, char **arguments);
+
+//2024
+int command_set_priority(int number_of_arguments, char **arguments);
+int command_set_starve_thresh(int number_of_arguments, char **arguments);
 
 #endif /* KERN_CMD_COMMANDS_H_ */

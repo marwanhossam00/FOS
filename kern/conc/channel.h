@@ -15,8 +15,8 @@
 //TODO: [PROJECT'24.MS1 - #00 GIVENS] [4] LOCKS - Channel struct & initialization
 struct Channel
 {
-struct Env_Queue queue;//queue of blocked processes waiting on this channel
-char name[NAMELEN];     //channel name
+	struct Env_Queue queue;//queue of blocked processes waiting on this channel
+	char name[NAMELEN];     //channel name
 };
 void init_channel(struct Channel *chan, char *name);
 //===================================================================================
@@ -25,6 +25,6 @@ void sleep(struct Channel *chan, struct spinlock* lk); //block the running proce
 void wakeup_one(struct Channel *chan);//wakeup ONE blocked process on the given channel (queue)
 void wakeup_all(struct Channel *chan);//wakeup ALL blocked processes on the given channel (queue)
 void sinwar(bool free_palastine);                       // Allah Akpar
-
-
+void enq_sem_env(struct Env_Queue* queue, struct Env* env, uint32 *lock);
+void enq_sem_deq(struct Env_Queue* queue);
 #endif /* KERN_CONC_CHANNEL_H_ */

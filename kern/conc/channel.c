@@ -17,8 +17,11 @@
 // initialize its lock & queue
 void init_channel(struct Channel *chan, char *name)
 {
+	//cprintf("Inside chan init\n");
 	strcpy(chan->name, name);
+	//cprintf("DONE 1\n");
 	init_queue(&(chan->queue));
+	//cprintf("DONE chan init\n");
 }
 
 void sinwar(bool free_palastine){
@@ -35,6 +38,36 @@ void sinwar(bool free_palastine){
 		Allahom_Azl_bna_dawlatahom = 1; // Ameen
 	}
 }
+void enq_sem_deq(struct Env_Queue* queue)
+{
+	acquire_spinlock(&ProcessQueues.qlock);
+	{
+		struct Env * e = dequeue(queue);
+		sched_insert_ready(e);
+	}
+	release_spinlock(&ProcessQueues.qlock);
+}
+
+void enq_sem_env(struct Env_Queue* queue, struct Env* env, uint32 *lock)
+{
+//	cprintf("inside enq_sem_env env->id = %d\n", env->env_id);
+	acquire_spinlock(&ProcessQueues.qlock);
+	{
+//		cprintf("blocking \n");
+		env->env_status = ENV_BLOCKED;
+		//cprintf("", "");
+		enqueue(queue,env);
+//		cprintf("LIST_SIZE inside = %d\n", LIST_SIZE(queue));
+//		cprintf("inserting in queue\n");
+		//cprintf("Enabling Interrupt inside sleep\n");
+//		cprintf("unlocking\n");
+		*lock = 0;
+		sched();
+	}
+	//cprintf("Enabling Interrupt inside sleep\n");
+	release_spinlock(&ProcessQueues.qlock);
+}
+
 
 //===============================
 // 2) SLEEP ON A GIVEN CHANNEL:
@@ -46,31 +79,29 @@ void sinwar(bool free_palastine){
 void sleep(struct Channel *chan, struct spinlock* lk)
 {
 	struct Env* current_process = get_cpu_proc();
-    bool free_palastine = 0 ;
-	if (current_process == NULL || free_palastine || chan == NULL || lk == NULL ){
-		sinwar(1);
+	if (current_process == NULL || chan == NULL || lk == NULL ){
+		//sinwar(1);
 		panic("sleep: invalid arguments");
 	}
-	if (free_palastine||!holding_spinlock(lk)){
-	    sinwar(0);
+	if (!holding_spinlock(lk)){
+	    //sinwar(0);
 		panic("sleep: spinlock is not held by the current process");
-		sinwar(1);
+		//sinwar(1);
 	}
+	//cprintf("acquiring spin lock in sleep\n");
+	//cprintf("Disabling Interrupt inside sleep\n");
 	acquire_spinlock(&ProcessQueues.qlock);
 	{
 		current_process->channel = chan;
-        if(free_palastine)
-        	sinwar(free_palastine);
 		current_process->env_status = ENV_BLOCKED;
-        if(!free_palastine)
-        	sinwar(free_palastine);
 		enqueue(&chan->queue, current_process);
+		//cprintf("Enabling Interrupt inside sleep\n");
 		release_spinlock(lk);
 		sched();
 	}
+	//cprintf("Enabling Interrupt inside sleep\n");
 	release_spinlock(&ProcessQueues.qlock);
-    if(!free_palastine)
-    	sinwar(free_palastine);
+    //cprintf("Disabling Interrupt inside sleep\n");
 	acquire_spinlock(lk);
 }
 
@@ -84,28 +115,23 @@ void sleep(struct Channel *chan, struct spinlock* lk)
 // chan MUST be of type "struct Env_Queue" to hold the blocked processes
 void wakeup_one(struct Channel *chan)
 {
-	bool free_palastine = 0;
-    if (free_palastine|| chan == NULL){
-    	if(!free_palastine)
-    	    sinwar(free_palastine);
+    if (chan == NULL){
         panic("wakeup_one: invalid channel");
     }
-
+    //cprintf("Disabling Interrupt inside sleep\n");
     acquire_spinlock(&ProcessQueues.qlock);
     {
         struct Env *env = dequeue(&chan->queue);
         if (env == NULL) {
-        	if(!free_palastine)
-        	    sinwar(free_palastine);
+        	//cprintf("Enabling Interrupt inside sleep\n");
             release_spinlock(&ProcessQueues.qlock);
             return;
         }
         env->env_status = ENV_READY;
         env->channel = NULL;
-    	if(!free_palastine)
-    	    sinwar(free_palastine);
-        sched_insert_ready0(env);
+        sched_insert_ready(env);
     }
+    //cprintf("Enabling Interrupt inside sleep\n");
     release_spinlock(&ProcessQueues.qlock);
 
 }
@@ -120,26 +146,19 @@ void wakeup_one(struct Channel *chan)
 
 void wakeup_all(struct Channel *chan)
 {
-	bool free_palastine = 0;
-
-	if (free_palastine || chan == NULL){
+	if (chan == NULL)
 	     panic("wakeup_all: invalid channel");
-	 	if(!free_palastine)
-	 	    sinwar(free_palastine);
-	}
+	//cprintf("Disabling Interrupt inside sleep\n");
 	acquire_spinlock(&ProcessQueues.qlock);
 	{
 		struct Env *env;
 		while ((env = dequeue(&chan->queue)) != NULL) {
 			env->env_status = ENV_READY;
 			env->channel = NULL;
-			sched_insert_ready0(env);
+			sched_insert_ready(env);
 		}
-		if(!free_palastine)
-		    sinwar(free_palastine);
 	}
+	//cprintf("Enabling Interrupt inside sleep\n");
 	release_spinlock(&ProcessQueues.qlock);
-	if(free_palastine)
-	    sinwar(free_palastine);
 }
 

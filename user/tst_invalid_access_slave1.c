@@ -7,6 +7,7 @@
 void _main(void)
 {
 	//[1] Kernel address
+	cprintf("Inside slave 1\n");
 	uint32 *ptr = (uint32*)(KERN_STACK_TOP - 12) ;
 	*ptr = 100 ;
 

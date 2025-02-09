@@ -5,6 +5,7 @@
  * */
 #ifndef KERN_CONC_SPINLOCK_H_
 #define KERN_CONC_SPINLOCK_H_
+#include <inc/stdio.h>
 
 //=======================================================================
 //TODO: [PROJECT'24.MS1 - #00 GIVENS] [4] LOCKS - SpinLock Implementation
@@ -20,6 +21,8 @@ struct spinlock {
 void init_spinlock(struct spinlock *lk, char *name);
 void acquire_spinlock(struct spinlock *lk);
 void release_spinlock(struct spinlock *lk);
+void acquire_spinlock_pQ();
+void release_spinlock_pQ();
 int getcallerpcs(void *v, uint32 pcs[]) ;
 void printcallstack(struct spinlock *lk);
 int holding_spinlock(struct spinlock *lock);

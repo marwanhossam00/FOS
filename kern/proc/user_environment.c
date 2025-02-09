@@ -177,7 +177,7 @@ struct Env* env_create(char* user_program_name, unsigned int page_WS_size, unsig
 		e->percentage_of_WS_pages_to_be_removed = percent_WS_pages_to_remove;
 
 	initialize_environment(e, ptr_user_page_directory, phys_user_page_directory);
-
+	//cprintf("e->env_id inisde env_create = %d\n", e->env_id);
 	// We want to load the program into the user virtual space
 	// each program is constructed from one or more segments,
 	// each segment has the following information grouped in "struct ProgramSegment"
@@ -188,18 +188,19 @@ struct Env* env_create(char* user_program_name, unsigned int page_WS_size, unsig
 	//	4- uint8 *virtual_address: start virtual address that this segment should be copied to it
 
 	//[5] 2024: Disable the interrupt before switching the directories
+	struct cpu* tmp = mycpu();
+	//cprintf("ncli inside env_create = %d\n", tmp->ncli);
 	pushcli();
+	//cprintf("ncli inside env_create after disabling the interrupt = %d\n", tmp->ncli);
 	{
 		//[6] switch to user page directory
 		uint32 cur_phys_pgdir = rcr3() ;
 		lcr3(e->env_cr3) ;
-
 		//[7] load each program segment into user virtual space
 		struct ProgramSegment* seg = NULL;  //use inside PROGRAM_SEGMENT_FOREACH as current segment information
 		int segment_counter=0;
 		uint32 remaining_ws_pages = (e->page_WS_max_size)-1; // we are reserving 1 page of WS for the stack that will be allocated just before the end of this function
 		uint32 lastTableNumber=0xffffffff;
-
 		PROGRAM_SEGMENT_FOREACH(seg, ptr_program_start)
 		{
 			segment_counter++;
@@ -212,14 +213,11 @@ struct Env* env_create(char* user_program_name, unsigned int page_WS_size, unsig
 			LOG_STATMENT(cprintf("SEGMENT #%d, size_in_file = %d, size_in_memory= %d, dest va = %x",segment_counter,seg->size_in_file,
 					seg->size_in_memory, seg->virtual_address));
 			LOG_STRING("===============================================================================");
-
 			uint32 allocated_pages=0;
 			program_segment_alloc_map_copy_workingset(e, seg, &allocated_pages, remaining_ws_pages, &lastTableNumber);
-
 			remaining_ws_pages -= allocated_pages;
 			LOG_STATMENT(cprintf("SEGMENT: allocated pages in WS = %d",allocated_pages));
 			LOG_STATMENT(cprintf("SEGMENT: remaining WS pages after allocation = %d",remaining_ws_pages));
-
 
 			/// 7.2) temporary initialize 1st page in memory then writing it on page file
 			uint32 dataSrc_va = (uint32) seg->ptr_start;
@@ -245,7 +243,6 @@ struct Env* env_create(char* user_program_name, unsigned int page_WS_size, unsig
 
 				//LOG_STRING(" -------------------- PAGE FILE: 1st page is written");
 			}
-
 			/// 7.3) Start writing the segment ,from 2nd page until before last page, to page file ...
 
 			uint32 start_last_page = ROUNDDOWN(seg_va  + seg->size_in_file, PAGE_SIZE) ;
@@ -271,7 +268,6 @@ struct Env* env_create(char* user_program_name, unsigned int page_WS_size, unsig
 			if (pf_add_env_page(e, start_last_page, ptr_temp_page) == E_NO_PAGE_FILE_SPACE)
 				panic("ERROR: Page File OUT OF SPACE. can't load the program in Page file!!");
 
-
 			//LOG_STRING(" -------------------- PAGE FILE: last page is written");
 
 			/// 7.5) writing the remaining seg->size_in_memory pages to disk
@@ -286,7 +282,6 @@ struct Env* env_create(char* user_program_name, unsigned int page_WS_size, unsig
 			}
 			//LOG_STRING(" -------------------- PAGE FILE: segment remaining area is written (the zeros) ");
 		}
-
 
 		///[8] Clear the modified bit of each page in the pageWorkingSet to indicate it's a clean version
 #if USE_KHEAP
@@ -317,14 +312,11 @@ struct Env* env_create(char* user_program_name, unsigned int page_WS_size, unsig
 			}
 		}
 #endif
-
 		//[9] now set the entry point of the environment
 		set_environment_entry_point(e, ptr_user_program_info->ptr_start);
-
 		//[10] Allocate and map ONE page for the program's initial stack
 		// at virtual address USTACKTOP - PAGE_SIZE.
 		// we assume that the stack is counted in the environment working set
-
 		e->initNumStackPages = 1;
 
 		//cprintf("\nwill allocate stack pages\n");
@@ -394,12 +386,10 @@ struct Env* env_create(char* user_program_name, unsigned int page_WS_size, unsig
 
 				//addTableToTableWorkingSet(e, ROUNDDOWN((uint32)stackVa, PAGE_SIZE*1024));
 			}
-
 			//add this page to the page file
 			int success = pf_add_empty_env_page(e, (uint32)stackVa, 1);
 			//if(success == 0) LOG_STATMENT(cprintf("STACK Page added to page file successfully\n"));
 		}
-
 		//2020
 		//LRU Lists: Reset PRESENT bit of all pages in Second List
 		if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
@@ -411,14 +401,12 @@ struct Env* env_create(char* user_program_name, unsigned int page_WS_size, unsig
 				pt_set_page_permissions(e->env_page_directory, elm->virtual_address, 0, PERM_PRESENT);
 			}
 		}
-
 		///[11] switch back to the page directory exists before segment loading
 		lcr3(cur_phys_pgdir) ;
 	}
 	//[12] Re-enable the interrupt (if it was too)
 	popcli();
-
-
+	//cprintf("ncli inside env_create after enabling again = %d\n", tmp->ncli);
 	//[13] Print the initial working set [for debugging]
 	{
 //		cprintf("Page working set after loading the program...\n");
@@ -606,6 +594,7 @@ void sched(void)
 	struct Env *p = get_cpu_proc();
 	assert(p != NULL);
 
+	//cprintf("@@@@@@@@@@@@@@@env_id inside sched@@@@@@@@@@@@@@ = %d\n", p->env_id);
 	/*To protect process Qs (or info of current process) in multi-CPU*/
 	if(!holding_spinlock(&ProcessQueues.qlock))
 		panic("sched: q.lock is not held by this CPU while it's expected to be. ");
@@ -724,7 +713,6 @@ static int program_segment_alloc_map_copy_workingset(struct Env *e, struct Progr
 	int r ;
 	uint32 i = 0 ;
 	struct FrameInfo *p = NULL;
-
 	*allocated_pages = 0;
 	/*2015*/// Load max of 6 pages only for the segment that start with va = 200000 [EXCEPT tpp]
 	if (iVA == 0x200000 && strcmp(e->prog_name, "tpp")!=0)
@@ -734,7 +722,6 @@ static int program_segment_alloc_map_copy_workingset(struct Env *e, struct Progr
 	{
 		// Allocate a page
 		allocate_frame(&p) ;
-
 		LOG_STRING("segment page allocated");
 		loadtime_map_frame(e->env_page_directory, p, iVA, PERM_USER | PERM_WRITEABLE);
 		LOG_STRING("segment page mapped");
@@ -831,7 +818,6 @@ static int program_segment_alloc_map_copy_workingset(struct Env *e, struct Progr
 		*dst_ptr = 0;
 		dst_ptr++ ;
 	}
-
 	return 0;
 }
 

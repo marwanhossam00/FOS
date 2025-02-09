@@ -7,6 +7,7 @@
 
 #include <inc/types.h>
 #include <inc/queue.h>
+#include <kern/conc/sleeplock.h>
 
 /*2017*/
 uint32 _KHeapPlacementStrategy;
@@ -49,6 +50,8 @@ uint32 HARD_LIMIT;
 void * brk;
 uint32 num_of_pages;
 uint32 last_free;
+
+
 
 //struct PageBlockElement
 //{

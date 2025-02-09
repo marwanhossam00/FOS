@@ -27,8 +27,6 @@ FUNCTIONS:	to_physical_address, get_frame_info, tlb_invalidate
 #include "kheap.h"
 
 
-
-
 void tlb_invalidate(uint32 *ptr_page_directory, void *virtual_address)
 {
 	// Flush the entry only if we're modifying the current address space.
@@ -84,7 +82,6 @@ void initialize_paging()
 		ptr_zero_page[i]=0;
 		ptr_temp_page[i]=0;
 	}
-
 	int range_end = ROUNDUP(PHYS_IO_MEM,PAGE_SIZE);
 
 	for (i = 3; i < range_end/PAGE_SIZE; i++)
@@ -95,19 +92,16 @@ void initialize_paging()
 
 		LIST_INSERT_HEAD(&MemFrameLists.free_frame_list, &frames_info[i]);
 	}
-
 	for (i = PHYS_IO_MEM/PAGE_SIZE ; i < PHYS_EXTENDED_MEM/PAGE_SIZE; i++)
 	{
 		frames_info[i].references = 1;
 	}
-
 	range_end = ROUNDUP(STATIC_KERNEL_PHYSICAL_ADDRESS(ptr_free_mem), PAGE_SIZE);
 
 	for (i = PHYS_EXTENDED_MEM/PAGE_SIZE ; i < range_end/PAGE_SIZE; i++)
 	{
 		frames_info[i].references = 1;
 	}
-
 	for (i = range_end/PAGE_SIZE ; i < number_of_frames; i++)
 	{
 		initialize_frame_info(&(frames_info[i]));
@@ -115,7 +109,6 @@ void initialize_paging()
 		//frames_info[i].references = 0;
 		LIST_INSERT_HEAD(&MemFrameLists.free_frame_list, &frames_info[i]);
 	}
-
 	initialize_disk_page_file();
 }
 
@@ -495,7 +488,6 @@ int loadtime_map_frame(uint32 *ptr_page_directory, struct FrameInfo *ptr_frame_i
 	uint32 *ptr_page_table;
 
 	uint32 page_directory_entry = ptr_page_directory[PDX(virtual_address)];
-
 	if(USE_KHEAP && !CHECK_IF_KERNEL_ADDRESS(virtual_address))
 	{
 		ptr_page_table = (uint32*)kheap_virtual_address(EXTRACT_ADDRESS(page_directory_entry)) ;
@@ -518,10 +510,8 @@ int loadtime_map_frame(uint32 *ptr_page_directory, struct FrameInfo *ptr_frame_i
 		}
 #endif
 	}
-
 	ptr_frame_info->references++;
 	ptr_page_table[PTX(virtual_address)] = CONSTRUCT_ENTRY(physical_address , perm | PERM_PRESENT);
-
 	return 0;
 }
 

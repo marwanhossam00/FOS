@@ -12,12 +12,12 @@
 //TODO: [PROJECT'24.MS1 - #00 GIVENS] [4] LOCKS - SleepLock struct & helper functions
 struct sleeplock
 {
-bool locked;       // Is the lock held?
-struct spinlock lk; // spinlock protecting this sleep lock
-struct Channel chan;// channel to hold all blocked processes on this lock
-// For debugging:
-char name[NAMELEN];    // Name of lock.
-int pid;           // Process holding lock
+	bool locked;       // Is the lock held?
+	struct spinlock lk; // spinlock protecting this sleep lock
+	struct Channel chan;// channel to hold all blocked processes on this lock
+	// For debugging:
+	char name[NAMELEN];    // Name of lock.
+	int pid;           // Process holding lock
 };
 
 void init_sleeplock(struct sleeplock *lk, char *name);

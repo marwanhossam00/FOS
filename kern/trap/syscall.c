@@ -11,6 +11,8 @@
 #include "syscall.h"
 #include <kern/cons/console.h>
 #include <kern/conc/channel.h>
+#include <kern/conc/spinlock.h>
+
 #include <kern/cpu/sched.h>
 #include <kern/cpu/cpu.h>
 #include <kern/disk/pagefile_manager.h>
@@ -18,6 +20,7 @@
 #include <kern/mem/shared_memory_manager.h>
 #include <kern/tests/utilities.h>
 #include <kern/tests/test_working_set.h>
+
 
 extern uint8 bypassInstrLength ;
 struct Env* cur_env ;
@@ -371,8 +374,53 @@ void sys_set_uheap_strategy(uint32 heapStrategy)
 /* SEMAPHORES SYSTEM CALLS */
 /*******************************/
 //[PROJECT'24.MS3] ADD SUITABLE CODE HERE
-
-
+void sys_env_set_priority(int32 envID, int priority){
+	env_set_priority(envID, priority);
+	return;
+}
+struct Env* sys_get_cpu_proc(void){
+	return get_cpu_proc();
+}
+void sys_init_queue(struct Env_Queue* queue){
+	init_queue(queue);
+	return;
+}
+int sys_queue_size(struct Env_Queue* queue){
+	return queue_size(queue);
+}
+void sys_sem_env_enq(struct Env_Queue *queue, struct Env* env, uint32 *lock){
+	enq_sem_env(queue,env,lock);
+	return;
+}
+void sys_sem_env_deq(struct Env_Queue *queue){
+	enq_sem_deq(queue);
+	return;
+}
+struct Env* sys_dequeue(struct Env_Queue* queue){
+	return dequeue(queue);
+}
+struct Env* sys_find_env_in_queue(struct Env_Queue* queue, uint32 envID){
+	return find_env_in_queue(queue, envID);
+}
+void sys_remove_from_queue(struct Env_Queue* queue, struct Env* e){
+	remove_from_queue(queue, e);
+	return;
+}
+void sys_release_spinlock_pQ(void){
+	release_spinlock_pQ();
+	return ;
+}
+void sys_acquire_spinlock_pQ(void){
+	acquire_spinlock_pQ();
+	return ;
+}
+void sys_sched_insert_ready(struct Env* env){
+	sched_insert_ready(env);
+	return;
+}
+void sys_sched(void){
+	return sched();
+}
 /*******************************/
 /* SHARED MEMORY SYSTEM CALLS */
 /*******************************/
@@ -529,6 +577,10 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 	//TODO: [PROJECT'24.MS1 - #02] [2] SYSTEM CALLS - Add suitable code here
 
 	//======================================================================
+	case SYS_env_set_priority:
+		sys_env_set_priority((uint32)a1, (uint32)a2);
+		return 0;
+		break;
 	case SYS_sbrk:
 	    return (uint32)sys_sbrk((int)a1);
 	    break;
@@ -540,6 +592,52 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 	    sys_allocate_user_mem((uint32)a1 , (uint32)a2);
 	    return 0;
 	    break;
+	case SYS_get_cpu_proc:
+		return (uint32)sys_get_cpu_proc();
+		break;
+	case SYS_init_queue:
+		sys_init_queue((struct Env_Queue*)a1);
+		return 0;
+		break;
+	case SYS_queue_size:
+		sys_queue_size((struct Env_Queue*)a1);
+		return 0;
+		break;
+	case SYS_sem_env_enq:
+		sys_sem_env_enq((struct Env_Queue *)a1,(struct Env*)a2, (uint32 *)a3);
+		return 0;
+		break;
+	case SYS_sem_env_deq:
+			sys_sem_env_deq((struct Env_Queue *)a1);
+			return 0;
+			break;
+	case SYS_dequeue:
+		return (uint32)sys_dequeue((struct Env_Queue*)a1);
+		break;
+	case SYS_find_env_in_queue:
+		sys_find_env_in_queue((struct Env_Queue*)a1,(uint32)a2);
+		return 0;
+		break;
+	case SYS_remove_from_queue:
+		sys_remove_from_queue((struct Env_Queue*)a1,(struct Env*)a2);
+		return 0;
+		break;
+	case SYS_sched_insert_ready:
+		sys_sched_insert_ready((struct Env*)a1);
+		return 0;
+		break;
+	case SYS_sched:
+		sys_sched();
+		return 0 ;
+		break;
+	case SYS_release_spinlock_pQ:
+		sys_release_spinlock_pQ();
+		return 0 ;
+		break;
+	case SYS_acquire_spinlock_pQ:
+		sys_acquire_spinlock_pQ();
+		return 0 ;
+		break;
 	case SYS_cputs:
 		sys_cputs((const char*)a1,a2,(uint8)a3);
 		return 0;
@@ -582,7 +680,6 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 		sys_allocate_chunk(a1, (uint32)a2, a3);
 		return 0;
 		break;
-
 		//======================
 	case SYS_allocate_page:
 		__sys_allocate_page((void*)a1, a2);

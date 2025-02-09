@@ -52,6 +52,19 @@ enum
 	SYS_sbrk,
 	SYS_allocate_user_mem,
 	SYS_free_user_mem,
+	SYS_get_cpu_proc,
+	SYS_init_queue,
+	SYS_queue_size,
+	SYS_sem_env_enq,
+	SYS_sem_env_deq,
+	SYS_dequeue,
+	SYS_find_env_in_queue,
+	SYS_remove_from_queue,
+	SYS_sched_insert_ready,
+	SYS_sched,
+	SYS_acquire_spinlock_pQ,
+	SYS_release_spinlock_pQ,
+	SYS_env_set_priority,
 	//=====================================================================
 	NSYSCALLS
 };

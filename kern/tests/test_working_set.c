@@ -152,7 +152,6 @@ int sys_check_WS_list(uint32* WS_list_content, int actual_WS_list_size, uint32 l
 		//			idx_WS_list++;
 		//		}
 		int idx_WS_list = 0;
-
 		//Search for the correct index of the current WS element (if any)
 		if (last_WS_element_content)
 		{
@@ -228,7 +227,7 @@ int sys_check_WS_list(uint32* WS_list_content, int actual_WS_list_size, uint32 l
 			}
 		}
 	}
-
+//	cprintf("DONE test working test = %d\n", WS_list_validation);
 	return WS_list_validation;
 #else
 	panic("sys_check_WS_list: this function is intended to be used when USE_KHEAP = 1");

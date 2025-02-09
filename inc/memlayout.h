@@ -153,6 +153,8 @@
 #define USTABDATA	(PTSIZE / 2)
 
 //2016
+//Added in MS3
+#define PGFLTEMP (UTEMP - PAGE_SIZE)
 #define KERNEL_HEAP_START 0xF6000000
 #define KERNEL_HEAP_MAX 0xFFFFF000
 //KHEAP pages number

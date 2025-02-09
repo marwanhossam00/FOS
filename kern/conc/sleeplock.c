@@ -12,19 +12,25 @@
 
 void init_sleeplock(struct sleeplock *lk, char *name)
 {
-init_channel(&(lk->chan), "sleep lock channel");
-init_spinlock(&(lk->lk), "lock of sleep lock");
-strcpy(lk->name, name);
-lk->locked = 0;
-lk->pid = 0;
+	//cprintf("Inside sleep lock init\n");
+	init_channel(&(lk->chan), "sleep lock channel");
+	//cprintf("DONE 1\n");
+	init_spinlock(&(lk->lk), "lock of sleep lock");
+	strcpy(lk->name, name);
+	lk->locked = 0;
+	lk->pid = 0;
+	//cprintf("Done sleep lock init\n");
 }
+
 int holding_sleeplock(struct sleeplock *lk)
 {
-int r;
-acquire_spinlock(&(lk->lk));
-r = lk->locked && (lk->pid == get_cpu_proc()->env_id);
-release_spinlock(&(lk->lk));
-return r;
+	int r;
+	//cprintf("acquire spin lock inside holding sleep lock\n");
+	acquire_spinlock(&(lk->lk));
+	r = lk->locked && (lk->pid == get_cpu_proc()->env_id);
+	//cprintf("release spin lock inside holding sleep lock\n");
+	release_spinlock(&(lk->lk));
+	return r;
 }
 //==========================================================================
 //void sinwar(bool free_palastine){
@@ -43,32 +49,52 @@ return r;
 //}
 void acquire_sleeplock(struct sleeplock *lk)
 {
-bool free_palastine = 0;
-if(!free_palastine)
-    sinwar(free_palastine);
-acquire_spinlock(&(lk->lk));
-while (lk->locked){
-sleep(&lk->chan,&lk->lk);
-}
-if(!free_palastine)
-    sinwar(free_palastine);
-lk->locked=1;
-    lk->pid = get_cpu_proc()->env_id;
-release_spinlock(&(lk->lk));
-if(free_palastine)
-    sinwar(free_palastine);
+	//cprintf("Inside acquire sleep lock\n");
+	bool free_palastine = 0;
+	//cprintf("DONE 1\n");
+//	if(!free_palastine)
+//		sinwar(free_palastine);
+	//cprintf("DONE 2\n");
+	//cprintf("Acquiring spin lock in acquire sleep lock\n");
+	//cprintf("Disabling interrupt inside acquire sleep lock\n");
+	acquire_spinlock(&(lk->lk));
+	while (lk->locked){
+		sleep(&lk->chan,&lk->lk);
+	}
+	//cprintf("DONE 3\n");
+//	if(!free_palastine)
+//		sinwar(free_palastine);
+	lk->locked = 1;
+	//cprintf("DONE 4\n");
+	//cprintf("lk address = %x\n", &lk);
+	struct Env *tmp = get_cpu_proc();
+//    if(!(tmp == NULL))
+//    {
+//    	cprintf("env_id inside acquire = %d\n", tmp->env_id);
+//    }
+//    else	cprintf("env is NULL!!\n");
+    //cprintf("DONE 5\n");
+    //cprintf("release spin lock in acquire sleep lock\n");
+    release_spinlock(&(lk->lk));
+    //cprintf("DONE 6\n");
+//    if(free_palastine)
+//    	sinwar(free_palastine);
+    //cprintf("Done acquire sleep lock\n");
 }
 
 void release_sleeplock(struct sleeplock *lk)
 {
-bool free_palastine = 0;
+	//cprintf("Inside release sleep lock\n");
+	bool free_palastine = 0;
+	//cprintf("acquire spin lock in sleep lock\n");
     acquire_spinlock(&lk->lk);
-if(!free_palastine)
-    sinwar(free_palastine);
+//    if(!free_palastine)
+//    	sinwar(free_palastine);
     lk->locked = 0;
     lk->pid = 0;
     wakeup_all(&lk->chan);
-if(!free_palastine)
-    sinwar(free_palastine);
+//    if(!free_palastine)
+//    	sinwar(free_palastine);
     release_spinlock(&lk->lk);
+    //cprintf("DONE release sleep lock\n");
 }

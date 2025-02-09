@@ -8,6 +8,7 @@
 //=============================================
 /*2023*/
 int32 user_array[(USER_HEAP_MAX - (USER_HEAP_START + (1<<11) + PAGE_SIZE)) / PAGE_SIZE] = {0};
+int last_free = 0;
 
 void *sbrk(int increment)
 {
@@ -61,13 +62,16 @@ void* malloc(uint32 size)
 	int i;
 	//cprintf("num_of_pages = %d\n", myEnv->num_of_pages);
 	//cprintf("array[0] = %d\n", user_array[0]);
-	for(i = 0; i < myEnv->num_of_pages;)
+	for(i = last_free; i < myEnv->num_of_pages;)
 	{
 		if(user_array[i] >= kamPage && user_array[i] > 0)
 		{
 			tmp = myEnv->user_heap_block_hard_limit + PAGE_SIZE + (i*PAGE_SIZE);
 			flag = 1;
 			//cprintf("flag = %d\n", flag);
+			if(last_free == i && (i+kamPage) < myEnv->num_of_pages)
+				last_free = (i+kamPage);
+			else	last_free = MIN(last_free, i+kamPage);
 			break;
 		}
 		if(user_array[i] > 0)	i += user_array[i];
@@ -138,6 +142,7 @@ void free(void* virtual_address)
 		}
 		if(left > 0 && right > 0)
 		{
+			last_free = MIN(last_free, (curr - left));
 			int32 val = left + right + curr_pages;
 			user_array[curr - left] = val;
 			user_array[(curr + curr_pages + right)-1] = val;
@@ -147,6 +152,7 @@ void free(void* virtual_address)
 		}
 		else if(left > 0)
 		{
+			last_free = MIN(last_free, (curr - left));
 			int32 val = left + curr_pages;
 			user_array[curr - left] = val;
 			user_array[(curr + curr_pages)-1] = val;
@@ -155,6 +161,7 @@ void free(void* virtual_address)
 		}
 		else if(right > 0)
 		{
+			last_free = MIN(last_free, curr);
 			int32 val = right + curr_pages;
 			user_array[curr] = val;
 			user_array[(curr + curr_pages + right)-1] = val;
@@ -162,6 +169,7 @@ void free(void* virtual_address)
 		}
 		else
 		{
+			last_free = MIN(last_free, curr);
 			//cprintf("LEFT AND RIGHT NOT FREE\n");
 			user_array[curr] = curr_pages;
 			user_array[(curr + curr_pages)-1] = curr_pages;
@@ -180,69 +188,82 @@ void* smalloc(char *sharedVarName, uint32 size, uint8 isWritable)
 	//==============================================================
 	//DON'T CHANGE THIS CODE========================================
 	if (size == 0) return NULL ;
+	//cprintf("INSIDE smalloc 1\n");
 	//==============================================================
 	//TODO: [PROJECT'24.MS2 - #18] [4] SHARED MEMORY [USER SIDE] - smalloc()
 	// Write your code here, remove the panic and write your code
 	//panic("smalloc() is not implemented yet...!!");
 	 if (myEnv->init_user_array == 0)
-	    {
-	        user_array[0] = myEnv->num_of_pages;
-	        user_array[myEnv->num_of_pages - 1] = myEnv->num_of_pages;
-	    }
+	 {
+		 user_array[0] = myEnv->num_of_pages;
+		 user_array[myEnv->num_of_pages - 1] = myEnv->num_of_pages;
+	 }
+	 //cprintf("2\n");
+	 uint32 kamPage = ROUNDUP(size, PAGE_SIZE);
+	 kamPage = kamPage / PAGE_SIZE;
+	 if(kamPage>myEnv->num_of_pages)return NULL;
+	 uint32 tmp, return_va;
+	 uint8 flag = 0;
+	 int i;
+	 //cprintf("3\n");
+	 if (sys_isUHeapPlacementStrategyFIRSTFIT())
+	 {
+		 //cprintf("4\n");
+		 for (i = last_free; i < myEnv->num_of_pages;)
+		 {
+			 if (user_array[i] >= kamPage && user_array[i] > 0)
+			 {
+				 tmp = myEnv->user_heap_block_hard_limit + PAGE_SIZE + (i * PAGE_SIZE);
+				 flag = 1;
+				 if(last_free == i && (i+kamPage) < myEnv->num_of_pages)
+					 last_free = (i+kamPage);
+				 else	last_free = MIN(last_free, i+kamPage);
+				 break;
+			 }
+			 if (user_array[i] > 0) i += user_array[i];
+			 else if (user_array[i] < 0) i += (user_array[i] * -1);
+			 else i++;
+		 }
+	 }
+	 //cprintf("5\n");
+	 if (flag == 0)
+	 {
+		 //cprintf("Error\n");
+		 // cprintf("mfesh block 3dl found in smalloc.\n");
+		 return NULL;
+	 }
 
-	    uint32 kamPage = ROUNDUP(size, PAGE_SIZE);
-	    kamPage = kamPage / PAGE_SIZE;
-	    if(kamPage>myEnv->num_of_pages)return NULL;
-	    uint32 tmp, return_va;
-	    uint8 flag = 0;
-	    int i;
+	 return_va = tmp;
+	 //cprintf(" block  index %d, address rag3: %p\n", i, (void*)return_va);
 
-	    if (sys_isUHeapPlacementStrategyFIRSTFIT())
-	    {
-	        for (i = 0; i < myEnv->num_of_pages;)
-	        {
-	            if (user_array[i] >= kamPage && user_array[i] > 0)
-	            {
-	                tmp = myEnv->user_heap_block_hard_limit + PAGE_SIZE + (i * PAGE_SIZE);
-	                flag = 1;
-	                break;
-	            }
-	            if (user_array[i] > 0) i += user_array[i];
-	            else if (user_array[i] < 0) i += (user_array[i] * -1);
-	            else i++;
-	        }
-	    }
+	 int32 val = user_array[i];
+	 user_array[i] = 0;
+	 user_array[i + val - 1] = 0;
 
-	    if (flag == 0)
-	    {
-	       // cprintf("mfesh block 3dl found in smalloc.\n");
-	        return NULL;
-	    }
-
-	    return_va = tmp;
-	    //cprintf(" block  index %d, address rag3: %p\n", i, (void*)return_va);
-
-	    int32 val = user_array[i];
-	    user_array[i] = 0;
-	    user_array[i + val - 1] = 0;
-
-	    if (val - kamPage > 0)
-	    {
-	        user_array[i + kamPage] = val - kamPage;
-	        user_array[i + kamPage + (val - kamPage) - 1] = val - kamPage;
-	        //cprintf(" block  : user_array[%d] = %d\n", i + kamPage, user_array[i + kamPage]);
-	    }
-
-	    user_array[i] = -kamPage;
-	    sys_allocate_user_mem(tmp, size);
-	    int ss = sys_createSharedObject(sharedVarName, size, isWritable, (void*)tmp);
-	    if(ss<0)return NULL;
+	 if (val - kamPage > 0)
+	 {
+		 user_array[i + kamPage] = val - kamPage;
+		 user_array[i + kamPage + (val - kamPage) - 1] = val - kamPage;
+		 //cprintf(" block  : user_array[%d] = %d\n", i + kamPage, user_array[i + kamPage]);
+	 }
+	 //cprintf("6\n");
+	 user_array[i] = -kamPage;
+	 sys_allocate_user_mem(tmp, size);
+	 int ss = sys_createSharedObject(sharedVarName, size, isWritable, (void*)tmp);
+	 if(ss < 0)return NULL;
 
 	    //cprintf(" el address el rag33333333: %p\n", return_va);
-	    if(ss>=0)
-	    return (void*)return_va;
-	    else
-	    return NULL;
+	 if(ss >= 0)
+	 {
+		 //cprintf("DONE 1\n");
+		 return (void*) return_va;
+	 }
+	 else
+	 {
+		 //cprintf("DONE 2\n");
+		 return NULL;
+	 }
+
 }
 
 //========================================

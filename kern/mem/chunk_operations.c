@@ -8,12 +8,13 @@
 #include <kern/trap/fault_handler.h>
 #include <kern/disk/pagefile_manager.h>
 #include <kern/proc/user_environment.h>
+#include <kern/conc/sleeplock.h>
 #include "kheap.h"
 #include "memory_manager.h"
 #include <inc/queue.h>
 
-//extern void inctst();
-
+//struct sleeplock user_alloc;
+//extern vsoid inctst();
 /******************************/
 /*[1] RAM CHUNKS MANIPULATION */
 /******************************/
@@ -218,6 +219,7 @@ void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 		}
 //		if(i == 0)	ptr_page_table[PTX(tmp)] |= (PERM_START_OF_PAGES);
 		ptr_page_table[PTX(tmp)] |= (PERM_MARKED | PERM_WRITEABLE | PERM_USER);
+//		pf_add_empty_env_page(e, tmp,0);
 		tmp += PAGE_SIZE;
 	}
 	return;

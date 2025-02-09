@@ -131,7 +131,7 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 	}
 	//==================================================================================
 	//==================================================================================
-
+	//cprintf("DONE 1\n");
 	//TODO: [PROJECT'24.MS1 - #04] [3] DYNAMIC ALLOCATOR - initialize_dynamic_allocator
 	//COMMENT THE FOLLOWING LINE BEFORE START CODING
 	//panic("initialize_dynamic_allocator is not implemented yet");
@@ -142,17 +142,20 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 	*BEG = 1;
 	uint32* END = (uint32*) (daStart +  initSizeOfAllocatedSpace - sizeof(int));
 	*END = 1;
+	//cprintf("DONE 2\n");
 	uint32* HEADER = (uint32*) (daStart + sizeof(int));
 	*HEADER = initSizeOfAllocatedSpace - 2*sizeof(int);
 	uint32* FOOTER = (uint32*) (daStart +  initSizeOfAllocatedSpace - 2*sizeof(int));
 	*FOOTER = initSizeOfAllocatedSpace - 2*sizeof(int);
+	//cprintf("DONE 3\n");
 	struct BlockElement *firstFree;
 	uint32* firstFreePtr = (uint32 *)(daStart + 2*sizeof(int)); // next_pointer after (BEG & Header)
 	int8 check = is_free_block((void *)firstFreePtr);
 	uint32 sssize = get_block_size((void *)firstFreePtr);
+	//cprintf("DONE 4\n");
 	firstFree = (struct BlockElement *) firstFreePtr;
 	LIST_INSERT_HEAD(&freeBlocksList, firstFree);
-
+	//cprintf("DONE 5\n");
 //	cprintf("---- is free --- %d\n", check);
 //	cprintf("---- firstFree --- %x\n", firstFree);
 //	cprintf("---- Size --- %d\n", sssize);

@@ -281,7 +281,7 @@ int sys_check_LRU_lists_free(uint32* list_content, int list_size)
 
 int sys_check_WS_list(uint32* WS_list_content, int actual_WS_list_size, uint32 last_WS_element_content, bool chk_in_order)
 {
-	return syscall(SYS_check_WS_list, (uint32)WS_list_content, (uint32)actual_WS_list_size , last_WS_element_content, (uint32)chk_in_order, 0);
+	return syscall(SYS_check_WS_list, (uint32)WS_list_content, (uint32)actual_WS_list_size , last_WS_element_content, (uint32)chk_in_order, 0);;
 }
 void sys_allocate_chunk(uint32 virtual_address, uint32 size, uint32 perms)
 {
@@ -317,4 +317,57 @@ void sys_allocate_user_mem(uint32 virtual_address, uint32 size)
     //    panic("not implemented yet");
     syscall(SYS_allocate_user_mem, (uint32)virtual_address , (uint32)size , 0 , 0 , 0 );
         return;
+}
+struct Env* sys_get_cpu_proc(void){
+	return (struct Env*) syscall(SYS_get_cpu_proc ,0,0,0,0,0 );
+}
+void sys_init_queue(struct Env_Queue* queue){
+    syscall(SYS_init_queue, (uint32)queue, 0, 0, 0, 0);
+  	return;
+}
+int sys_queue_size(struct Env_Queue* queue){
+	return (int) syscall(SYS_queue_size,(uint32)queue,0,0,0,0);
+
+}
+void sys_sem_env_enq(struct Env_Queue* queue, struct Env* env, uint32 *lock){
+    syscall(SYS_sem_env_enq, (uint32)queue, (uint32) env,(uint32)lock, 0, 0);
+    return;
+}
+void sys_sem_env_deq(struct Env_Queue* queue){
+    syscall(SYS_sem_env_deq, (uint32)queue,0,0, 0, 0);
+    return;
+}
+
+struct Env* sys_dequeue(struct Env_Queue* queue){
+	return (struct Env*) syscall(SYS_dequeue ,(uint32 )queue,0,0,0,0 );
+
+}
+struct Env* sys_find_env_in_queue(struct Env_Queue* queue, uint32 envID){
+	return (struct Env*) syscall(SYS_find_env_in_queue ,(uint32 )queue,envID,0,0,0 );
+}
+void sys_remove_from_queue(struct Env_Queue* queue, struct Env* e){
+	syscall(SYS_remove_from_queue, (uint32)queue, (uint32) e, 0, 0, 0);
+	return;
+}
+void sys_sched_insert_ready(struct Env* e){
+//	cprintf("syscall in lib\n");
+	syscall(SYS_sched_insert_ready, (uint32)e,0, 0, 0, 0);
+	return;
+}
+void sys_sched(void){
+	syscall(SYS_sched, 0,0, 0, 0, 0);
+	return;
+}
+void sys_release_spinlock_pQ(void){
+	 syscall(SYS_release_spinlock_pQ,0,0,0,0,0);
+	 return;
+}
+void sys_acquire_spinlock_pQ(void){
+	 syscall(SYS_acquire_spinlock_pQ,0,0,0,0,0);
+	 return;
+}
+
+void sys_env_set_priority(int32 envID, int priority){
+	syscall(SYS_env_set_priority,(uint32)envID,(uint32)priority, 0, 0, 0);
+	return;
 }

@@ -58,13 +58,13 @@ LIST_HEAD(Env_list, Env);		// Declares 'struct Env_list'
 uint32 old_pf_counter;
 //uint32 mydblchk;
 struct WorkingSetElement {
+//	uint32 idx;
 	unsigned int virtual_address;
 	uint8 empty;
 	//2012
-	unsigned int time_stamp ;
-
+	unsigned int time_stamp;
 	//2021
-	unsigned int sweeps_counter;
+	int sweeps_counter;
 	//2020
 	LIST_ENTRY(WorkingSetElement) prev_next_info;	// list link pointers
 };

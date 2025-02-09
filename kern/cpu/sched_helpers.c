@@ -282,7 +282,7 @@ void sched_run_env(uint32 envId)
 		}
 	}
 	release_spinlock(&(ProcessQueues.qlock)); 	//CS on Qs
-	  //cprintf("\n[SCHED_RUN_ENV] release#2: lock status after = %d\n", qlock.locked);
+	 //cprintf("\n[SCHED_RUN_ENV] release#2: lock status after = %d\n", qlock.locked);
 }
 
 //=================================================

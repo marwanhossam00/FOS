@@ -60,6 +60,8 @@
 #define PERM_PRESENT	0x001	// Present
 #define PERM_WRITEABLE	0x002	// Writeable
 #define PERM_USER		0x004	// User
+#define PERM_MARKED     0x200   /*ADDED for MARKED PAGES*/
+#define PERM_START_OF_PAGES 0x400 /*ADDED for the start of the pages*/
 #define PTE_PWT		0x008	// Write-Through
 #define PTE_PCD		0x010	// Cache-Disable
 #define PERM_USED		0x020	// Accessed

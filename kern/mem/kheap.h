@@ -6,7 +6,7 @@
 #endif
 
 #include <inc/types.h>
-
+#include <inc/queue.h>
 
 /*2017*/
 uint32 _KHeapPlacementStrategy;
@@ -41,7 +41,22 @@ unsigned int kheap_physical_address(unsigned int virtual_address);
 int numOfKheapVACalls ;
 
 
-//[PROJECT'24.MS2] add suitable code here
+//TODO: [PROJECT'24.MS2 - #01] [1] KERNEL HEAP - add suitable code here
+int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate, uint32 daLimit);
+//Hard_Limit
+uint32 HARD_LIMIT;
+// sbrk current position
+void * brk;
+uint32 num_of_pages;
+uint32 last_free;
 
+//struct PageBlockElement
+//{
+//	uint32 num;
+//	uint32 Pages;
+//	LIST_ENTRY(PageBlockElement) prev_next_info;
+//};
+//LIST_HEAD(MemPageBlock_LIST, PageBlockElement);
+//struct MemPageBlock_LIST freePageBlocksList ;
 
 #endif // FOS_KERN_KHEAP_H_

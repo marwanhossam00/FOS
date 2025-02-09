@@ -300,8 +300,7 @@ void* sys_sbrk(int numOfPages)
 {
     //Comment the following line before start coding...
     //panic("not implemented yet");
-    syscall(SYS_sbrk , (int)numOfPages , 0 , 0 , 0 , 0 );
-    return (void*)-1 ;
+    return (void *)syscall(SYS_sbrk , (int)numOfPages , 0 , 0 , 0 , 0 );
 }
 
 void sys_free_user_mem(uint32 virtual_address, uint32 size)

@@ -466,12 +466,10 @@ int command_run_program(int number_of_arguments, char **arguments)
 
 	//[2] Place it in the NEW queue
 	sched_new_env(env);
-
 	numOfKheapVACalls = 0;
 
 	//[3] Run the created environment by adding it to the "ready" queue then invoke the scheduler to execute it
 	sched_run_env(env->env_id);
-
 	return 0;
 }
 

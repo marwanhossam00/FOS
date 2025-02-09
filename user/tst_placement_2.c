@@ -9,7 +9,6 @@ extern uint32 initFreeFrames;
 
 void _main(void)
 {
-
 	int8 arr[PAGE_SIZE*1024*4];
 
 	//uint32 actual_active_list[13] = {0xedbfd000,0xeebfd000,0x803000,0x802000,0x801000,0x800000,0x205000,0x204000,0x203000,0x202000,0x201000,0x200000};

@@ -65,5 +65,6 @@ void *alloc_block_WF(uint32 size);
 void *alloc_block_NF(uint32 size);
 void free_block(void* va);
 void *realloc_block_FF(void* va, uint32 new_size);
+int8 transfer_data(void * va_old, void * va_new, uint32 old_size, uint32 new_size);
 
 #endif

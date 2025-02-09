@@ -16,12 +16,19 @@
 
 inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, uint32 virtual_address)
 {
-	//[PROJECT'24.MS2] Create a new WS element
+	//TODO: [PROJECT'24.MS2 - #07] [2] FAULT HANDLER I - Create a new WS element
 	//If failed to create a new one, kernel should panic()!
 	//COMMENT THE FOLLOWING LINE BEFORE START CODING
-	panic("create_share is not implemented yet");
-	//Your Code is Here...
-
+	void * new_elem = kmalloc(sizeof(struct WorkingSetElement));
+	//cprintf("I AM IN create working set element \n");
+	if(new_elem == NULL)
+		panic("No enough memory\n");
+	struct WorkingSetElement *elem = (struct WorkingSetElement *)new_elem;
+	//cprintf("I AM IN create working set element 1\n");
+	virtual_address = ROUNDDOWN(virtual_address, PAGE_SIZE);
+	elem->virtual_address = virtual_address;
+	//cprintf("I AM IN create working set element 2\n");
+	return elem;
 }
 inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 {

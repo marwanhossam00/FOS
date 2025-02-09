@@ -148,10 +148,32 @@ void fault_handler(struct Trapframe *tf)
 		if (userTrap)
 		{
 			/*============================================================================================*/
-			//[PROJECT'24.MS2] [3] PAGE FAULT HANDLER - Check for invalid pointers
+			//TODO: [PROJECT'24.MS2 - #08] [2] FAULT HANDLER I - Check for invalid pointers
 			//(e.g. pointing to unmarked user heap page, kernel or wrong access rights),
 			//your code is here
-
+			/*DELETE COMMENTS HERE*/
+			int el_perm = pt_get_page_permissions(faulted_env->env_page_directory, fault_va);
+			if(!(fault_va >= USER_HEAP_START && fault_va < USTACKTOP))
+			{
+//				cprintf("fault_va = %x\n",fault_va);
+//				cprintf("NOT USER.....exit()\n");
+				env_exit();
+			}
+			if((fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX) && !(el_perm & PERM_WRITEABLE))
+			{
+//				cprintf("USER BUT NOT WRITEABLE.....exit()\n");
+				env_exit();
+			}
+			if((fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX) && !(el_perm & PERM_MARKED))
+			{
+//				cprintf("USER AND NOT MARKED.....exit()\n");
+				env_exit();
+			}
+			if((el_perm & PERM_PRESENT) && !(el_perm & PERM_WRITEABLE))
+			{
+//				cprintf("PRESENT BUT NOT WRITEABLE.....exit()\n");
+				env_exit();
+			}
 			/*============================================================================================*/
 		}
 
@@ -214,10 +236,6 @@ void table_fault_handler(struct Env * curenv, uint32 fault_va)
 //=========================
 void page_fault_handler(struct Env * faulted_env, uint32 fault_va)
 {
-	//[PROJECT'24] [3] PAGE FAULT HANDLER
-	// Write your code here, remove the panic and write your code
-	panic("page_fault_handler() is not implemented yet...!!");
-
 #if USE_KHEAP
 		struct WorkingSetElement *victimWSElement = NULL;
 		uint32 wsSize = LIST_SIZE(&(faulted_env->page_WS_list));
@@ -229,17 +247,59 @@ void page_fault_handler(struct Env * faulted_env, uint32 fault_va)
 	if(wsSize < (faulted_env->page_WS_max_size))
 	{
 		//cprintf("PLACEMENT=========================WS Size = %d\n", wsSize );
-		//[PROJECT'24.MS2 - #15] [3] PAGE FAULT HANDLER - Placement
+		//TODO: [PROJECT'24.MS2 - #09] [2] FAULT HANDLER I - Placement
 		// Write your code here, remove the panic and write your code
-		panic("page_fault_handler().PLACEMENT is not implemented yet...!!");
-
+		//panic("page_fault_handler().PLACEMENT is not implemented yet...!!");
+		int ret = pf_read_env_page(faulted_env, (void *)fault_va);
+		if(ret == E_PAGE_NOT_EXIST_IN_PF)
+		{
+			//(fault_va > USTACKBOTTOM && fault_va < (USTACKTOP - faulted_env->initNumStackPages * PAGE_SIZE)) ||
+			if((fault_va >= USTACKBOTTOM && fault_va < USTACKTOP)||(fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX))
+			{
+				/*try without saving on disk*/
+				struct FrameInfo *ptr_frame = NULL;
+				int ret = allocate_frame(&ptr_frame);
+				if(ret == E_NO_MEM)	return;
+				ret = map_frame(faulted_env->env_page_directory,ptr_frame,fault_va,PERM_PRESENT|PERM_USER|PERM_WRITEABLE);
+				if(ret == E_NO_MEM)
+				{
+					free_frame(ptr_frame);
+					return;
+				}
+				struct WorkingSetElement * elem = env_page_ws_list_create_element(faulted_env, fault_va);
+				LIST_INSERT_TAIL(&faulted_env->page_WS_list,elem);
+				if(LIST_SIZE(&faulted_env->page_WS_list) == faulted_env->page_WS_max_size)
+					faulted_env->page_last_WS_element = LIST_FIRST(&faulted_env->page_WS_list);
+				return;
+			}
+			else
+			{
+				env_exit();
+				return;
+			}
+		}
+		struct FrameInfo *ptr_frame = NULL;
+		ret = allocate_frame(&ptr_frame);
+		if(ret == E_NO_MEM)	return;
+		ret = map_frame(faulted_env->env_page_directory,ptr_frame,fault_va,PERM_PRESENT|PERM_USER|PERM_WRITEABLE);
+		if(ret == E_NO_MEM)
+		{
+			free_frame(ptr_frame);
+			return;
+		}
+		struct WorkingSetElement * elem = env_page_ws_list_create_element(faulted_env, fault_va);
+		LIST_INSERT_TAIL(&faulted_env->page_WS_list,elem);
+		if(LIST_SIZE(&faulted_env->page_WS_list) == faulted_env->page_WS_max_size)
+			faulted_env->page_last_WS_element = LIST_FIRST(&faulted_env->page_WS_list);
+		//cprintf("PAGE FAULT DONE\n");
+		return;
 		//refer to the project presentation and documentation for details
 	}
 	else
 	{
 		//cprintf("REPLACEMENT=========================WS Size = %d\n", wsSize );
 		//refer to the project presentation and documentation for details
-		//[PROJECT'24.MS3] [1] PAGE FAULT HANDLER - Replacement
+		//TODO: [PROJECT'24.MS3] [2] FAULT HANDLER II - Replacement
 		// Write your code here, remove the panic and write your code
 		panic("page_fault_handler() Replacement is not implemented yet...!!");
 	}

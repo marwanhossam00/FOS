@@ -120,7 +120,7 @@ uint32 calculate_required_frames(uint32* page_directory, uint32 sva, uint32 size
 //=====================================
 /* DYNAMIC ALLOCATOR SYSTEM CALLS */
 //=====================================
-void* sys_sbrk(int numOfPages)
+void * sys_sbrk(int numOfPages)
 {
 	/* numOfPages > 0: move the segment break of the current user program to increase the size of its heap
 	 * 				by the given number of pages. You should allocate NOTHING,
@@ -135,16 +135,55 @@ void* sys_sbrk(int numOfPages)
 	 * 		be that sys_sbrk returns (void*) -1 and that the segment break and the process heap are unaffected.
 	 * 		You might have to undo any operations you have done so far in this case.
 	 */
-
-	struct Env* env = get_cpu_proc(); //the current running Environment to adjust its break limit
-
+	//cprintf("4. sys_sbrk\n");
+	//TODO: [PROJECT'24.MS2 - #11] [3] USER HEAP - sys_sbrk
 	/*====================================*/
 	/*Remove this line before start coding*/
-	return (void*)-1 ;
 	/*====================================*/
+	//cprintf("sbrk DONE 1\n");
+	struct Env* env = get_cpu_proc(); //the current running Environment to adjust its break limit
+	uint32 tmp_brk = env->user_heap_block_seg_break;
+	uint32 tmp_start = env->user_heap_block_start;
+	uint32 tmp_limit = env->user_heap_block_hard_limit;
+	//cprintf("sbrk DONE 2\n");
+	//cprintf("tmp_start = %x\n", tmp_start);
+	//cprintf("tmp_brk = %x\n", tmp_brk);
+	//cprintf("tmp_limit = %x\n", tmp_limit);
+	//cprintf("numOfPages = %d\n", numOfPages);
 
-	//[PROJECT'24.MS2] Implement this function
-
+	if(numOfPages == 0)
+	{
+		//cprintf("return_brk = %x\n", tmp_brk);
+		return (void *)tmp_brk;
+	}
+	if(tmp_brk + (numOfPages*PAGE_SIZE) > tmp_limit)
+		return (void *)-1;
+	//cprintf("sbrk DONE 3\n");
+	uint32 tmp = tmp_brk;
+	/* if no memory available it should return (void *)-1 not handled ------ implement the pt_set_page_permissions yourself and check for memory*/
+	//cprintf("DONE 1\n");
+	//cprintf("sbrk DONE 4\n");
+	for(int i = 0; i < numOfPages; ++i)
+	{	/*Setting the pages as marked and write is 1*/
+		uint32* ptr_page_table = NULL;
+		int ret = get_page_table(env->env_page_directory, tmp, &ptr_page_table);
+		//if(i == 0)	cprintf("sbrk DONE 5\n");
+		if(ret == TABLE_NOT_EXIST)
+		{
+			//cprintf("DONE 3\n");
+			ptr_page_table = create_page_table(env->env_page_directory, tmp);
+		}
+		//if(i == 0)	cprintf("sbrk DONE 6\n");
+		//cprintf("DONE 4\n");
+		ptr_page_table[PTX(tmp)] |= (PERM_USER | PERM_MARKED | PERM_WRITEABLE);
+		tmp += PAGE_SIZE;
+		//if(i == 0)	cprintf("sbrk DONE 7\n");
+	}
+	//cprintf("sbrk DONE 8\n");
+	env->user_heap_block_seg_break = tmp;
+	void *return_brk = (void *)tmp_brk;
+	//cprintf("return_brk = %x\n", return_brk);
+	return return_brk;
 }
 
 //=====================================
@@ -152,15 +191,36 @@ void* sys_sbrk(int numOfPages)
 //=====================================
 void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 {
+	//cprintf("inside allocate_user_mem\n");
 	/*====================================*/
 	/*Remove this line before start coding*/
-	inctst();
-	return;
+	//	inctst();
+	//	return;
 	/*====================================*/
 
-	//[PROJECT'24.MS2] [USER HEAP - KERNEL SIDE] allocate_user_mem
+	//TODO: [PROJECT'24.MS2 - #13] [3] USER HEAP [KERNEL SIDE] - allocate_user_mem()
 	// Write your code here, remove the panic and write your code
-	panic("allocate_user_mem() is not implemented yet...!!");
+	//panic("allocate_user_mem() is not implemented yet...!!");
+
+	if(e->init_user_array == 0 )	e->init_user_array = 1;
+	uint32 tmp = virtual_address;
+
+	uint32 kamPage = ROUNDUP(size, PAGE_SIZE);
+	kamPage = kamPage/PAGE_SIZE;
+
+	for(int i = 0; i < kamPage; ++i)
+	{	/*Setting the pages as marked and write is 1*/
+		uint32* ptr_page_table = NULL;
+		int ret = get_page_table(e->env_page_directory, tmp, &ptr_page_table);
+		if(ret == TABLE_NOT_EXIST)
+		{
+			ptr_page_table = create_page_table(e->env_page_directory, tmp);
+		}
+//		if(i == 0)	ptr_page_table[PTX(tmp)] |= (PERM_START_OF_PAGES);
+		ptr_page_table[PTX(tmp)] |= (PERM_MARKED | PERM_WRITEABLE | PERM_USER);
+		tmp += PAGE_SIZE;
+	}
+	return;
 }
 
 //=====================================
@@ -170,13 +230,33 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 {
 	/*====================================*/
 	/*Remove this line before start coding*/
-	inctst();
-	return;
+//	inctst();
+//	return;
 	/*====================================*/
-
-	//[PROJECT'24.MS2] [USER HEAP - KERNEL SIDE] free_user_mem
+	//TODO: [PROJECT'24.MS2 - #15] [3] USER HEAP [KERNEL SIDE] - free_user_mem
 	// Write your code here, remove the panic and write your code
-	panic("free_user_mem() is not implemented yet...!!");
+	//panic("free_user_mem() is not implemented yet...!!");
+	int32 tmp = virtual_address;
+	uint32 kamPage = ROUNDUP(size, PAGE_SIZE);
+	kamPage = kamPage/PAGE_SIZE;
+
+	for(int i = 0; i < kamPage; ++i)
+	{	/*Setting the pages as marked and write is 0*/
+		uint32* ptr_page_table = NULL;
+		int ret = get_page_table(e->env_page_directory, tmp, &ptr_page_table);
+		//if(i == 0)	cprintf("BEFORE = %x\n", ptr_page_table[PTX(tmp)]);
+		ptr_page_table[PTX(tmp)] &= (~(PERM_MARKED));
+		//if(i == 0) cprintf("AFTER UNMARKING = %x\n", ptr_page_table[PTX(tmp)]);
+		ptr_page_table[PTX(tmp)] &= (~(PERM_WRITEABLE));
+		//if(i == 0) cprintf("AFTER UnWRITEABLE = %x\n", ptr_page_table[PTX(tmp)]);
+		ptr_page_table[PTX(tmp)] &= (~(PERM_USER));
+		//cprintf("BEFORE\n");
+		env_page_ws_invalidate(e, tmp);
+		pf_remove_env_page(e, tmp);
+		tmp += PAGE_SIZE;
+	}
+	return ;
+	//TODO: [PROJECT'24.MS2 - BONUS#3] [3] USER HEAP [KERNEL SIDE] - O(1) free_user_mem
 }
 
 //=====================================
